@@ -2,7 +2,7 @@
   "name": "github-copilot-llm-gateway",
   "displayName": "GitHub Copilot LLM Gateway",
   "description": "Connect GitHub Copilot to open-source models via vLLM or any OpenAI-compatible server",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "publisher": "AndrewButson",
   "icon": "assets/copilot-llm-gateway.png",
   "private": true,
@@ -146,9 +146,9 @@
         },
         "github.copilot.llm-gateway.agentTemperature": {
           "type": "number",
-          "default": 0.0,
-          "minimum": 0.0,
-          "maximum": 2.0,
+          "default": 0,
+          "minimum": 0,
+          "maximum": 2,
           "description": "Fallback temperature for agent/tool calling mode (lower = more consistent tool call formatting). Set to 0.0 for best results with fine-tuned models. A temperature discovered from the backend's own model config (e.g. an Ollama Modelfile via /api/show) takes precedence; use perModelOptions to force a specific value.",
           "order": 9
         },
@@ -245,13 +245,14 @@
     }
   },
   "devDependencies": {
-    "@types/node": "^26.1.0",
+    "@types/node": "^26.1.2",
     "@types/vscode": "^1.125.0",
-    "@typescript-eslint/eslint-plugin": "^8.63.0",
-    "@typescript-eslint/parser": "^8.63.0",
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "@typescript-eslint/eslint-plugin": "^8.65.0",
+    "@typescript-eslint/parser": "^8.65.0",
     "@vscode/vsce": "^3.9.2",
     "esbuild": "^0.28.1",
-    "eslint": "^10.6.0",
-    "typescript": "^6.0.3"
+    "eslint": "^10.8.0",
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
   }
 }
