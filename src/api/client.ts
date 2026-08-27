@@ -625,6 +625,55 @@ export class GatewayClient {
     }
   }
 
+  /**
+   * Probe whether the server is llama.cpp / llama-server / CachyLlama via its
+   * native `GET /props` endpoint.
+   */
+  public async probeLlamaServer(cancellationToken?: vscode.CancellationToken): Promise<boolean> {
+    const base = normalizeBaseUrl(this.config.serverUrl);
+    try {
+      const response = await this.fetchWithTimeout(
+        `${base}/props`,
+        { method: 'GET', headers: this.getHeaders() },
+        cancellationToken,
+        DISCOVERY_PROBE_TIMEOUT_MS
+      );
+      if (!response.ok) {
+        return false;
+      }
+      const body: unknown = await response.json();
+      return (
+        typeof body === 'object' &&
+        body !== null &&
+        ('default_generation_settings' in body || 'total_slots' in body)
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Fetch llama-server properties via `GET /props`.
+   * Returns raw JSON body or undefined on error.
+   */
+  public async getLlamaProps(cancellationToken?: vscode.CancellationToken): Promise<unknown> {
+    const base = normalizeBaseUrl(this.config.serverUrl);
+    try {
+      const response = await this.fetchWithTimeout(
+        `${base}/props`,
+        { method: 'GET', headers: this.getHeaders() },
+        cancellationToken,
+        DISCOVERY_PROBE_TIMEOUT_MS
+      );
+      if (!response.ok) {
+        return undefined;
+      }
+      return await response.json();
+    } catch {
+      return undefined;
+    }
+  }
+
   private getHeaders(): Record<string, string> {
     return buildHeaders(this.config.apiKey, this.config.customHeaders);
   }

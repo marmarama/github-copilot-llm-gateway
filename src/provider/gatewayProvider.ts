@@ -28,7 +28,10 @@ import { ChatRequestHandler, RequestStateEvent } from './chatRequestHandler';
 import { ConfigService } from './configService';
 import { InlineCompletionService } from './inlineCompletionService';
 import { ModelCatalog } from './modelCatalog';
+import { ModelDiscovery } from '../discovery/types';
+import { LlamaServerDiscovery } from '../discovery/llamaServerDiscovery';
 import { OllamaDiscovery } from '../discovery/ollamaDiscovery';
+import { CompositeModelDiscovery } from '../discovery/compositeDiscovery';
 import { SecretsManager } from './secretsManager';
 import { promptOpenSettings } from './notifications';
 import { countMessageTokens } from './vscodeParts';
@@ -89,7 +92,7 @@ export class GatewayProvider
   private readonly configService: ConfigService;
   private readonly secretsManager: SecretsManager;
   private readonly catalog: ModelCatalog;
-  private readonly discovery: OllamaDiscovery;
+  private readonly discovery: ModelDiscovery;
   private readonly chatHandler: ChatRequestHandler;
   private readonly inlineCompletions: InlineCompletionService;
   /**
@@ -148,7 +151,9 @@ export class GatewayProvider
     });
     this.config = this.configService.load();
     this.client = new GatewayClient(this.config, log);
-    this.discovery = new OllamaDiscovery({ client: this.client, log });
+    const llamaDiscovery = new LlamaServerDiscovery({ client: this.client, log });
+    const ollamaDiscovery = new OllamaDiscovery({ client: this.client, log });
+    this.discovery = new CompositeModelDiscovery([llamaDiscovery, ollamaDiscovery]);
     this.catalog = new ModelCatalog({
       client: this.client,
       discovery: this.discovery,
