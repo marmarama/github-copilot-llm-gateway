@@ -1,6 +1,88 @@
 import * as vscode from 'vscode';
 import { GatewayProvider } from '../provider/gatewayProvider';
 import { editCustomHeadersFlow } from './customHeaders';
+import { probeAllLocalEndpoints, KNOWN_LOCAL_ENDPOINTS } from '../discovery/endpointDiscovery';
+
+/**
+ * Prompt user to pick from auto-detected local servers, standard presets, or enter a custom URL.
+ */
+async function pickServerUrl(currentUrl: string): Promise<string | undefined> {
+  const discovered = await probeAllLocalEndpoints();
+
+  interface ServerQuickPickItem extends vscode.QuickPickItem {
+    url?: string;
+    isCustom?: boolean;
+  }
+
+  const items: ServerQuickPickItem[] = [];
+
+  if (discovered.length > 0) {
+    items.push({
+      label: 'Detected Local Servers',
+      kind: vscode.QuickPickItemKind.Separator,
+    });
+    for (const d of discovered) {
+      items.push({
+        label: `$(vm-active) ${d.label}`,
+        description: d.url,
+        detail: `Auto-detected active server on ${d.url}`,
+        url: d.url,
+      });
+    }
+  }
+
+  items.push({
+    label: 'Standard Presets',
+    kind: vscode.QuickPickItemKind.Separator,
+  });
+  for (const preset of KNOWN_LOCAL_ENDPOINTS) {
+    items.push({
+      label: preset.name,
+      description: preset.url,
+      url: preset.url,
+    });
+  }
+
+  items.push({
+    label: 'Custom',
+    kind: vscode.QuickPickItemKind.Separator,
+  });
+  items.push({
+    label: '$(edit) Custom URL...',
+    description: `Current: ${currentUrl}`,
+    isCustom: true,
+  });
+
+  const selected = await vscode.window.showQuickPick(items, {
+    title: 'LLM Gateway — Select Inference Server URL',
+    placeHolder: 'Select a detected server or enter a custom URL',
+    ignoreFocusOut: true,
+  });
+
+  if (!selected) {
+    return undefined;
+  }
+
+  if (selected.isCustom) {
+    return await vscode.window.showInputBox({
+      title: 'LLM Gateway — Custom Server URL',
+      prompt: 'Enter the inference server URL (OpenAI-compatible endpoint)',
+      value: currentUrl,
+      placeHolder: 'http://127.0.0.1:9931',
+      ignoreFocusOut: true,
+      validateInput: (value) => {
+        try {
+          new URL(value);
+          return undefined;
+        } catch {
+          return 'Please enter a valid URL';
+        }
+      },
+    });
+  }
+
+  return selected.url;
+}
 
 /**
  * "Configure Server" flow — triggered by the "Add Models..." dropdown via the
@@ -15,21 +97,7 @@ export async function configureServerFlow(
   const config = vscode.workspace.getConfiguration('github.copilot.llm-gateway');
   const currentUrl = config.get<string>('serverUrl', 'http://localhost:8000');
 
-  const url = await vscode.window.showInputBox({
-    title: 'LLM Gateway — Server URL',
-    prompt: 'Enter the inference server URL (OpenAI-compatible endpoint)',
-    value: currentUrl,
-    placeHolder: 'http://localhost:8000',
-    ignoreFocusOut: true,
-    validateInput: (value) => {
-      try {
-        new URL(value);
-        return undefined;
-      } catch {
-        return 'Please enter a valid URL';
-      }
-    },
-  });
+  const url = await pickServerUrl(currentUrl);
   if (url === undefined) { return; } // cancelled
 
   const apiKey = await vscode.window.showInputBox({
